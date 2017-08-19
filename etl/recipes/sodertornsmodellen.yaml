@@ -1,0 +1,344 @@
+# recipe for dataset
+info:
+    id: sodertornsmodellen-dataset
+    base:
+      - &d1 ddf--sodertornsmodellen--src
+
+config:
+    recipes_dir: ./
+    #dictionary_dir: ../translation_dictionaries
+    ddf_dir: ../../
+
+ingredients:
+    - id: sodertornsmodellen-datapoints-basomrade
+      dataset: *d1
+      key: "basomrade,year"
+      value: &CONCEPT_FILTER
+        # Education
+        - educational_level_higher_education_min_3_years_aged_25_64_male
+        - population_aged_25_64_male
+        - educational_level_higher_education_min_3_years_aged_25_64_female
+        - population_aged_25_64_female
+        - population_aged_25_64
+        # Employment
+        - employed_aged_20_64_male
+        - population_aged_20_64_male
+        - employed_aged_20_64_female
+        - population_aged_20_64_female
+        - population_aged_20_64
+        # Income
+        - mean_income_aged_lt_20_male
+        - mean_income_aged_lt_20_female
+        - mean_income_aged_lt_20
+        - population_20xx_12_31_male
+        - population_20xx_12_31_female
+        # Migration
+        # 1
+        - immigration_male
+        - emigration_male
+        - immigration_female
+        - emigration_female
+        # 2
+        - immigration_employed_aged_20_64_male
+        - emigration_employed_aged_20_64_male
+        - immigration_employed_aged_20_64_female
+        - emigration_employed_aged_20_64_female
+        # 3
+        - immigration_min_3_years_of_higher_education_aged_25_64_male
+        - emigration_min_3_years_of_higher_education_aged_25_64_male
+        - immigration_min_3_years_of_higher_education_aged_25_64_female
+        - emigration_min_3_years_of_higher_education_aged_25_64_female
+
+    - id: sodertornsmodellen-datapoints-municipality
+      dataset: *d1
+      key: "muncipality,year"
+      value: *CONCEPT_FILTER
+
+    - id: sodertornsmodellen-datapoints-county
+      dataset: *d1
+      key: "county,year"
+      value: *CONCEPT_FILTER
+
+    - id: sodertornsmodellen-datapoints-county_region
+      dataset: *d1
+      key: "county_region,year"
+      value: *CONCEPT_FILTER
+
+    - id: sodertornsmodellen-datapoints-country
+      dataset: *d1
+      key: "country,year"
+      value: *CONCEPT_FILTER
+
+    - id: sodertornsmodellen-entities
+      dataset: *d1
+      key: 
+        - "geo"
+      value: "*"
+
+    - id: sodertornsmodellen-concepts
+      dataset: *d1
+      key: "concept"
+      value: "*"
+
+cooking:
+    datapoints:
+      # Aggregations (excluding cumsums) 
+      - procedure: run_op
+        ingredients:
+            - sodertornsmodellen-datapoints-basomrade
+        options:
+          op: &AGGS
+            population_20xx_12_31: population_20xx_12_31_male + population_20xx_12_31_female
+            immigration_surplus_male: immigration_male - emigration_male
+            immigration_surplus_female: immigration_female - emigration_female
+            immigration_surplus: (immigration_male - emigration_male) + (immigration_female - emigration_female)
+            immigration_surplus_employed_aged_20_64_male: |
+              immigration_employed_aged_20_64_male - emigration_employed_aged_20_64_male
+            immigration_surplus_employed_aged_20_64_female: |
+              immigration_employed_aged_20_64_female - emigration_employed_aged_20_64_female
+            immigration_surplus_employed_aged_20_64: |
+              (immigration_employed_aged_20_64_male - emigration_employed_aged_20_64_male) + (immigration_employed_aged_20_64_female - emigration_employed_aged_20_64_female)
+            immigration_surplus_min_3_years_of_higher_education_aged_25_64_male: |
+              immigration_min_3_years_of_higher_education_aged_25_64_male - emigration_min_3_years_of_higher_education_aged_25_64_male
+            immigration_surplus_min_3_years_of_higher_education_aged_25_64_female: |
+              immigration_min_3_years_of_higher_education_aged_25_64_female - emigration_min_3_years_of_higher_education_aged_25_64_female
+            immigration_surplus_min_3_years_of_higher_education_aged_25_64: |
+              (immigration_min_3_years_of_higher_education_aged_25_64_male - emigration_min_3_years_of_higher_education_aged_25_64_male) + (immigration_min_3_years_of_higher_education_aged_25_64_female - emigration_min_3_years_of_higher_education_aged_25_64_female)
+            # Rates
+            higher_education_min_3_years_percent_of_population_aged_25_64_male: |
+              educational_level_higher_education_min_3_years_aged_25_64_male / population_aged_25_64_male
+            higher_education_min_3_years_percent_of_population_aged_25_64_female: |
+              educational_level_higher_education_min_3_years_aged_25_64_female / population_aged_25_64_female
+            higher_education_min_3_years_percent_of_population_aged_25_64: |
+              (educational_level_higher_education_min_3_years_aged_25_64_male + educational_level_higher_education_min_3_years_aged_25_64_female) / population_aged_25_64
+            employment_rate_aged_20_64_male: employed_aged_20_64_male / population_aged_20_64_male
+            employment_rate_aged_20_64_female: employed_aged_20_64_female / population_aged_20_64_female
+            employment_rate_aged_20_64: (employed_aged_20_64_male + employed_aged_20_64_female) / population_aged_20_64
+        result: sodertornsmodellen-datapoints-basomrade-agg
+
+        # Copy columns to be cumulated
+      - procedure: copy
+        ingredients:
+            - sodertornsmodellen-datapoints-basomrade-agg
+        options:
+            dictionary: &COPY
+              immigration_surplus_male: cumulative_immigration_surplus_male 
+              immigration_surplus_female: cumulative_immigration_surplus_female
+              immigration_surplus: cumulative_immigration_surplus
+              immigration_surplus_employed_aged_20_64_male: cumulative_immigration_surplus_employed_aged_20_64_male
+              immigration_surplus_employed_aged_20_64_female: cumulative_immigration_surplus_employed_aged_20_64_female
+              immigration_surplus_employed_aged_20_64: cumulative_immigration_surplus_employed_aged_20_64
+              immigration_surplus_min_3_years_of_higher_education_aged_25_64_male: cumulative_immigration_surplus_min_3_years_of_higher_education_aged_25_64_male
+              immigration_surplus_min_3_years_of_higher_education_aged_25_64_female: cumulative_immigration_surplus_min_3_years_of_higher_education_aged_25_64_female
+              immigration_surplus_min_3_years_of_higher_education_aged_25_64: cumulative_immigration_surplus_min_3_years_of_higher_education_aged_25_64
+        result: sodertornsmodellen-datapoints-basomrade-agg-copy
+
+        # Cumulative sums
+      - procedure: accumulate
+        ingredients:
+            - sodertornsmodellen-datapoints-basomrade-agg-copy
+        options:
+            op: &CUMSUM
+              cumulative_immigration_surplus_male: "cumsum" 
+              cumulative_immigration_surplus_female: "cumsum"
+              cumulative_immigration_surplus: "cumsum"
+              cumulative_immigration_surplus_employed_aged_20_64_male: "cumsum"
+              cumulative_immigration_surplus_employed_aged_20_64_female: "cumsum"
+              cumulative_immigration_surplus_employed_aged_20_64: "cumsum"
+              cumulative_immigration_surplus_min_3_years_of_higher_education_aged_25_64_male: "cumsum"
+              cumulative_immigration_surplus_min_3_years_of_higher_education_aged_25_64_female: "cumsum"
+              cumulative_immigration_surplus_min_3_years_of_higher_education_aged_25_64: "cumsum"
+        result: sodertornsmodellen-datapoints-basomrade-cumsum
+
+      # Filter to include only measures of interest
+      - procedure: filter_item
+        ingredients: 
+          - sodertornsmodellen-datapoints-basomrade-cumsum
+        options:
+          items: &FINAL_DATAPOINTS
+            - higher_education_min_3_years_percent_of_population_aged_25_64_male
+            - higher_education_min_3_years_percent_of_population_aged_25_64_female
+            - higher_education_min_3_years_percent_of_population_aged_25_64
+            - employment_rate_aged_20_64_male
+            - employment_rate_aged_20_64_female
+            - employment_rate_aged_20_64
+            - mean_income_aged_lt_20_male
+            - mean_income_aged_lt_20_female
+            - mean_income_aged_lt_20
+            - population_20xx_12_31_male
+            - population_20xx_12_31_female
+            - population_20xx_12_31
+            - immigration_surplus_male
+            - immigration_surplus_female
+            - immigration_surplus
+            - immigration_surplus_employed_aged_20_64_male
+            - immigration_surplus_employed_aged_20_64_female
+            - immigration_surplus_employed_aged_20_64
+            - immigration_surplus_min_3_years_of_higher_education_aged_25_64_male
+            - immigration_surplus_min_3_years_of_higher_education_aged_25_64_female
+            - immigration_surplus_min_3_years_of_higher_education_aged_25_64
+            - cumulative_immigration_surplus_male
+            - cumulative_immigration_surplus_female
+            - cumulative_immigration_surplus
+            - cumulative_immigration_surplus_employed_aged_20_64_male
+            - cumulative_immigration_surplus_employed_aged_20_64_female
+            - cumulative_immigration_surplus_employed_aged_20_64
+            - cumulative_immigration_surplus_min_3_years_of_higher_education_aged_25_64_male
+            - cumulative_immigration_surplus_min_3_years_of_higher_education_aged_25_64_female
+            - cumulative_immigration_surplus_min_3_years_of_higher_education_aged_25_64
+        result: sodertornsmodellen-datapoints-basomrade-final 
+
+        ############## TRANSFORMATION OF THE DATAPOINTS FOR THE OTHER ENTITY SETS ##############
+      #
+#      # Aggregations (excluding cumsums) 
+#      - procedure: run_op
+#        ingredients:
+#            - sodertornsmodellen-datapoints-municipality
+#        options:
+#          op: *AGGS
+#        result: sodertornsmodellen-datapoints-municipality-agg
+#        # Copy columns to be cumulated
+#      - procedure: copy
+#        ingredients:
+#            - sodertornsmodellen-datapoints-municipality-agg
+#        options:
+#            dictionary: *COPY
+#        result: sodertornsmodellen-datapoints-municipality-agg-copy
+#        # Cumulative sums
+#      - procedure: accumulate
+#        ingredients:
+#            - sodertornsmodellen-datapoints-municipality-agg-copy
+#        options:
+#            op: *CUMSUM
+#        result: sodertornsmodellen-datapoints-municipality-cumsum
+#      # Filter to include only measures of interest
+#      - procedure: filter_item
+#        ingredients: 
+#          - sodertornsmodellen-datapoints-municipality-cumsum
+#        options:
+#          items: *FINAL_DATAPOINTS
+#        result: sodertornsmodellen-datapoints-municipality-final
+#      #
+#      # Aggregations (excluding cumsums) 
+#      - procedure: run_op
+#        ingredients:
+#            - sodertornsmodellen-datapoints-county
+#        options:
+#          op: *AGGS
+#        result: sodertornsmodellen-datapoints-county-agg
+#        # Copy columns to be cumulated
+#      - procedure: copy
+#        ingredients:
+#            - sodertornsmodellen-datapoints-county-agg
+#        options:
+#            dictionary: *COPY
+#        result: sodertornsmodellen-datapoints-county-agg-copy
+#        # Cumulative sums
+#      - procedure: accumulate
+#        ingredients:
+#            - sodertornsmodellen-datapoints-county-agg-copy
+#        options:
+#            op: *CUMSUM
+#        result: sodertornsmodellen-datapoints-county-cumsum
+#      # Filter to include only measures of interest
+#      - procedure: filter_item
+#        ingredients: 
+#          - sodertornsmodellen-datapoints-county-cumsum
+#        options:
+#          items: *FINAL_DATAPOINTS
+#        result: sodertornsmodellen-datapoints-county-final
+#      #
+#      # Aggregations (excluding cumsums) 
+#      - procedure: run_op
+#        ingredients:
+#            - sodertornsmodellen-datapoints-county_region
+#        options:
+#          op: *AGGS
+#        result: sodertornsmodellen-datapoints-county_region-agg
+#        # Copy columns to be cumulated
+#      - procedure: copy
+#        ingredients:
+#            - sodertornsmodellen-datapoints-county_region-agg
+#        options:
+#            dictionary: *COPY
+#        result: sodertornsmodellen-datapoints-county_region-agg-copy
+#        # Cumulative sums
+#      - procedure: accumulate
+#        ingredients:
+#            - sodertornsmodellen-datapoints-county_region-agg-copy
+#        options:
+#            op: *CUMSUM
+#        result: sodertornsmodellen-datapoints-county_region-cumsum
+#      # Filter to include only measures of interest
+#      - procedure: filter_item
+#        ingredients: 
+#          - sodertornsmodellen-datapoints-county_region-cumsum
+#        options:
+#          items: *FINAL_DATAPOINTS
+#        result: sodertornsmodellen-datapoints-county_region-final
+#      #  
+#      # Aggregations (excluding cumsums) 
+#      - procedure: run_op
+#        ingredients:
+#            - sodertornsmodellen-datapoints-country
+#        options:
+#          op: *AGGS
+#        result: sodertornsmodellen-datapoints-country-agg
+#        # Copy columns to be cumulated
+#      - procedure: copy
+#        ingredients:
+#            - sodertornsmodellen-datapoints-country-agg
+#        options:
+#            dictionary: *COPY
+#        result: sodertornsmodellen-datapoints-country-agg-copy
+#        # Cumulative sums
+#      - procedure: accumulate
+#        ingredients:
+#            - sodertornsmodellen-datapoints-country-agg-copy
+#        options:
+#            op: *CUMSUM
+#        result: sodertornsmodellen-datapoints-country-cumsum
+#      # Filter to include only measures of interest
+#      - procedure: filter_item
+#        ingredients: 
+#          - sodertornsmodellen-datapoints-country-cumsum
+#        options:
+#          items: *FINAL_DATAPOINTS
+#        result: sodertornsmodellen-datapoints-country-final
+
+        ############## END TRANSFORMATION ##############
+
+      # Serve the prepared ingredients
+      - procedure: serve
+        ingredients:
+          - sodertornsmodellen-datapoints-basomrade-final
+#          - sodertornsmodellen-datapoints-municipality-final
+#          - sodertornsmodellen-datapoints-county-final
+#          - sodertornsmodellen-datapoints-county_region-final
+#          - sodertornsmodellen-datapoints-country-final
+
+      # TODO: Add concepts
+#      - procedure: add_concepts
+#        ingredients:
+#          - sodertornsmodellen-datapoints-basomrade-final
+
+
+    entities:
+      - procedure: identity
+        ingredients:
+          - sodertornsmodellen-entities
+
+    concepts:
+      - procedure: add_concepts
+        ingredients:
+          - sodertornsmodellen-concepts
+        options:
+          source_ingredients: ["sodertornsmodellen-datapoints-basomrade-final"]
+
+
+
+
+
+
+
+
