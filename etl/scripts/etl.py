@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[1]:
+# In[149]:
 
 import pandas as pd
 import numpy as np
@@ -12,7 +12,7 @@ from ddf_utils.str import to_concept_id
 
 # ## Files & Dirs
 
-# In[2]:
+# In[150]:
 
 # Directories
 out_dir = os.path.join(os.pardir, os.pardir,"ddf--sodertornsmodellen--src")
@@ -24,14 +24,9 @@ entities_file_2 = os.path.join(src, "kommunlankod.xls") # Municipalities from St
 datapoints_file = os.path.join(src, "Slutgiltig basområdetsdata hela länet170706.xlsx") # Municipality data
 
 
-# In[3]:
-
-df_basmoraden_universal = []
-
-
 # ## Translation dict for column names
 
-# In[18]:
+# In[151]:
 
 column_names = {    
     "År": "year",
@@ -80,6 +75,8 @@ column_names = {
     "Summa inkomst, Män": "sum_income_aged_gt_20_male",
     "Summa inkomst, Kvinnor": "sum_income_aged_gt_20_female",
     "Summa inkomst, Totalt": "sum_income_aged_gt_20",
+#     "mean_income_aged_gt_20_gender":"Medelinkomst, gender",
+#     "emigration_min_3_years_of_higher_education_aged_25_64_gender":"Antal, Utflyttade 25-64 år som har minst 3-årig högskoleutbildning,  gender",
     # Work sheets
     # 1
     "Antal, Inflyttade, Män": "immigration_male",
@@ -138,22 +135,23 @@ column_names = {
 
 # ## Excel sheets' config
 
-# In[19]:
+# In[152]:
 
 sheet_config = [
+    
     {
         "sheetname": 0,
-        "skiprows": [0,1,2],
-        "parse_cols": "A:P",
-        "no_headers": 2,
-        "name": "education"
-    },
-    {
-        "sheetname": 1,
         "skiprows": [0,1,2],
         "parse_cols": "A:J",
         "no_headers": 2,
         "name": "employment"
+    },
+    {
+        "sheetname": 1,
+        "skiprows": [0,1,2],
+        "parse_cols": "A:P",
+        "no_headers": 2,
+        "name": "education"
     },
     {   
         "sheetname": 2,
@@ -188,7 +186,7 @@ sheet_config = [
 
 # ## Helpers
 
-# In[20]:
+# In[153]:
 
 def map_to_id(x):
     if x == str("Stockholms län"):
@@ -199,7 +197,7 @@ def map_to_id(x):
         return to_concept_id(x)
 
 
-# In[21]:
+# In[154]:
 
 def generate_code_dict(df):
     
@@ -215,7 +213,7 @@ def generate_code_dict(df):
 
 # ## Process data
 
-# In[22]:
+# In[155]:
 
 def process_data(data, b_names, column_names, no_headers, sheetname):
 
@@ -258,16 +256,18 @@ def process_data(data, b_names, column_names, no_headers, sheetname):
 
 # ## Entities
 
-# In[23]:
+# In[156]:
 
 def extract_entities_basomraden(data, names):
 
     basomraden = data.copy()
     names = names.copy()
     
+    #print(basomraden.head(2))
+    
     # Rename columns
     basomraden = basomraden[basomraden["basomrade"] != ""]
-    basomraden = basomraden[["basomrade", "geo"]]
+    basomraden = basomraden[["basomrade", "geo", "population_aged_20_64"]]
     basomraden.rename(columns={"geo": "municipality"}, inplace=True)
     basomraden.drop_duplicates("basomrade", inplace=True)
     names.rename(columns={2010: "basomrade", "namn": "name"}, inplace=True)
@@ -280,14 +280,19 @@ def extract_entities_basomraden(data, names):
     basomraden["basomrade"] = basomraden["basomrade"].map(str) + " " + basomraden["name"]
     basomraden["name"] = basomraden[["basomrade", "name"]].apply(lambda x: str(x[0]) if x[1] == "" else x[1], axis=1)
     
-    
     basomraden["basomrade"] = basomraden["basomrade"].map(to_concept_id)
     basomraden["is--basomrade"] = "TRUE"
+    basomraden["size"] = basomraden["population_aged_20_64"].apply(lambda x: "big" if x > 150 else 'mini')
     
-    return basomraden[["basomrade", "name", "municipality", "is--basomrade"]]
+    #print(pd.DataFrame(basomraden["basomrade"].str.split('_',1).tolist()))
+    df = pd.DataFrame(basomraden["basomrade"].str.split('_',1).tolist(),
+                                   columns = ['basd','row'])
+    basomraden["baskod2010"] = df["basd"]
+    
+    return basomraden[["basomrade", "name", "municipality", "is--basomrade", "size", "baskod2010"]]
 
 
-# In[24]:
+# In[157]:
 
 def extract_entities_municipalities(data):
 
@@ -303,7 +308,7 @@ def extract_entities_municipalities(data):
     return muni
 
 
-# In[25]:
+# In[158]:
 
 def extract_entities_counties(data):
     
@@ -318,7 +323,7 @@ def extract_entities_counties(data):
     return counties
 
 
-# In[26]:
+# In[159]:
 
 def extract_entities_county_region():
     
@@ -327,7 +332,7 @@ def extract_entities_county_region():
     return county_regions
 
 
-# In[27]:
+# In[160]:
 
 def extract_entities_countries():
     
@@ -339,7 +344,7 @@ def extract_entities_countries():
 
 # ## Datapoints
 
-# In[28]:
+# In[161]:
 
 def extract_datapoints(data, basomraden, municipalities, counties, county_regions, countries):
     
@@ -357,7 +362,7 @@ def extract_datapoints(data, basomraden, municipalities, counties, county_region
 
 # ## Concepts
 
-# In[29]:
+# In[162]:
 
 def extract_concepts(measures, column_names):
     
@@ -383,9 +388,58 @@ def extract_concepts(measures, column_names):
     return data
 
 
+# In[163]:
+
+def datapoints_by_basomrade_gender():
+    """create datapoints by basomrade/gender/year and copy datapoints for
+    basomrade/year
+    """
+    res = list()
+    
+    indicators = ["mean_income_aged_gt_20",
+                  "share_emigration_min_3_years_of_higher_education_aged_25_64"]
+    
+    for indicator in indicators:
+
+        if indicator == 'indicators':
+            continue
+
+        ilist = [
+            #indicator,
+            indicator+'_male',
+            indicator+'_female'
+        ]
+
+        data = []
+
+        for i in ilist:
+            d = pd.read_csv(os.path.join(out_dir,
+                                         'ddf--datapoints--{}--by--basomrade--year.csv'.format(i)))
+            d = d.rename(columns={i: indicator})
+            if '_female' in i:
+                d['gender'] = 'female'
+            elif '_male' in i:
+                d['gender'] = 'male'
+            else:
+                #shutil.copy(os.path.join(source_path,
+                #                         'ddf--datapoints--{}--by--basomrade--year.csv'.format(i)),
+                #            out_path)
+                continue
+            data.append(d)
+
+        finaldata = pd.concat(data, ignore_index=True)
+        res.append(finaldata)
+        finaldata.to_csv(
+            os.path.join(out_dir,
+                         'ddf--datapoints--{}--by--gender--basomrade--year.csv'.format(indicator)),
+            index=False
+        )
+    return res
+
+
 # ## Main
 
-# In[30]:
+# In[ ]:
 
 if __name__ == "__main__":
     
@@ -423,21 +477,24 @@ if __name__ == "__main__":
             
             for i, entity in enumerate(entities):
                 #not generating basomrade file here. will do in the end.
-                if( i > 0):
-                    path = os.path.join(out_dir, "ddf--entities--{}.csv".format(entity_name[i]))
-                    print ("Printing " + path)
-                    entity.to_csv(path, index=False, encoding="utf-8")
+                #if( i > 0):
+                path = os.path.join(out_dir, "ddf--entities--{}.csv".format(entity_name[i]))
+                print ("Printing " + path)
+                entity.to_csv(path, index=False, encoding="utf-8")
         
         # Convert basomrade codes to IDs
-#         if (first_run):
-#             code_to_id = generate_code_dict(df_basomraden)
-        df_basomraden = extract_entities_basomraden(data, b_names)
-    
-        df_basomraden_all = df_basomraden_all.append(df_basomraden)
-        df_basomraden_all = df_basomraden_all.drop_duplicates().reset_index(drop=True)
+        if (first_run):
+            code_to_id = generate_code_dict(df_basomraden)
         
-
-        code_to_id = generate_code_dict(df_basomraden)
+#         df_basomraden = extract_entities_basomraden(data, b_names)
+#         df_basomraden_all = df_basomraden_all.append(df_basomraden)
+#         df_basomraden_all = df_basomraden_all.drop_duplicates().reset_index(drop=True)
+#         print(df_basomraden.count())
+#         print(df_basomraden_all.count())
+        
+#         #print(df_basomraden_all[~df_basomraden_all.isin(df_basomraden)])
+        
+#         code_to_id = generate_code_dict(df_basomraden)
         
         data["basomrade"] = data["basomrade"].apply(lambda x: code_to_id[str(x)] if x != "" else "")
         
@@ -472,27 +529,51 @@ if __name__ == "__main__":
         if (not first_run):
             del df_concepts 
         print (" ------ Concepts from sheet " + config["name"] + " ------ ")
+        
+        #print(measures)
+        #measures.append(pd.series(["mean_income_aged_gt_20_gender"]))
+        #measures.append["emigration_min_3_years_of_higher_education_aged_25_64_gender"]
+        #print(measures)
         df_concepts = extract_concepts(measures, column_names)
+        if (first_run):
+            df_concepts = df_concepts.append({'concept':"mean_income_aged_gt_20_gender",
+                            'name':"Medelinkomst, gender",
+                            'concept_type':"measure",
+                           'domain':''}, ignore_index=True)
+            df_concepts = df_concepts.append({'concept':"emigration_min_3_years_of_higher_education_aged_25_64_gender",
+                            'name':"Antal, Utflyttade 25-64 år som har minst 3-årig högskoleutbildning,  gender",
+                            'concept_type':"measure",
+                           'domain':''}, ignore_index=True)
+            df_concepts = df_concepts.append({'concept':"size",
+                            'name':"",
+                            'concept_type':"string",
+                           'domain':''}, ignore_index=True)
+            df_concepts = df_concepts.append({'concept':"baskod2010",
+                            'name':"",
+                            'concept_type':"string",
+                           'domain':''}, ignore_index=True)
+            df_concepts = df_concepts.append({'concept':"gender",
+                            'name':"gender",
+                            'concept_type':"entity_domain",
+                           'domain':''}, ignore_index=True)
+        #df_concepts.append({"","","measure"}, ignore_index=True)
         path = os.path.join(out_dir, "ddf--concepts.csv")
         print ("Printing " + path)
         df_concepts.to_csv(path, index=False, encoding="utf-8")
         first_run = False
     
     # out put basomrade file now in the end instead in first step.
-    entities = [df_basomraden_all]
-    entity_name = ["basomrade"]
+#     entities = [df_basomraden_all]
+#     entity_name = ["basomrade"]
     
-    for i, entity in enumerate(entities):
-        path = os.path.join(out_dir, "ddf--entities--{}.csv".format(entity_name[i]))
-        print ("Printing " + path)
-        entity.to_csv(path, index=False, encoding="utf-8")
+#     for i, entity in enumerate(entities):
+#         path = os.path.join(out_dir, "ddf--entities--{}.csv".format(entity_name[i]))
+#         print ("Printing " + path)
+#         entity.to_csv(path, index=False, encoding="utf-8")
     # CLEANUP
+    datapoints_by_basomrade_gender()
+    
     del data, df_basomraden, df_municipalities, df_counties, df_county_regions, df_countries, df_concepts,        df_dps_bas, df_dps_muni, df_dps_county, df_dps_county_r, df_dps_country, e_data, df_datapoints, b_names
-
-
-# In[ ]:
-
-
 
 
 # In[ ]:
