@@ -12,21 +12,26 @@ from ddf_utils.str import to_concept_id
 
 # ## Files & Dirs
 
-# In[39]:
+# In[2]:
 
 # Directories
-out_dir = os.path.join(os.pardir, os.pardir, "ddf--sodertornsmodellen--src")
+out_dir = os.path.join(os.pardir, os.pardir,"ddf--sodertornsmodellen--src")
 src = os.path.join(os.pardir, "source")
 
 # Raw data
 entities_file_1 = os.path.join(src, "161115 A7 utan formler.xlsx") # Basomrande from Statistics Sweden
 entities_file_2 = os.path.join(src, "kommunlankod.xls") # Municipalities from Statistics Sweden
-datapoints_file = os.path.join(src, "Basområdesdata hela länet.xlsx") # Municipality data
+datapoints_file = os.path.join(src, "Slutgiltig basområdetsdata hela länet170706.xlsx") # Municipality data
+
+
+# In[3]:
+
+df_basmoraden_universal = []
 
 
 # ## Translation dict for column names
 
-# In[40]:
+# In[4]:
 
 column_names = {    
     "År": "year",
@@ -83,6 +88,7 @@ column_names = {
     "Antal, Utflyttade, Kvinnor": "emigration_female",
     "Antal, Befolkning 20XX-12-31, Män": "population_20xx_12_31_male",
     "Antal, Befolkning 20XX-12-31, Kvinnor": "population_20xx_12_31_female",
+    "Antal, Befolkning 20XX-12-31, Totalt": "population_20xx_12_31",
     "Andelar, Inflyttade, Män": "share_immigration_male",
     "Andelar, Inflyttade, Kvinnor": "share_immigration_female",
     "Andelar, Inflyttade, Totalt": "share_immigration",
@@ -132,7 +138,7 @@ column_names = {
 
 # ## Excel sheets' config
 
-# In[41]:
+# In[5]:
 
 sheet_config = [
     {
@@ -149,7 +155,7 @@ sheet_config = [
         "no_headers": 2,
         "name": "employment"
     },
-    {
+    {   
         "sheetname": 2,
         "skiprows": [0,1,2,4,5,6],
         "parse_cols": "A:W",
@@ -159,7 +165,7 @@ sheet_config = [
     {
         "sheetname": 3,
         "skiprows": [0,1,2,4,5,6],
-        "parse_cols": "A:O",
+        "parse_cols": "A:P",
         "no_headers": 3,
         "name": "total migration"
     },
@@ -182,7 +188,7 @@ sheet_config = [
 
 # ## Helpers
 
-# In[42]:
+# In[6]:
 
 def map_to_id(x):
     if x == str("Stockholms län"):
@@ -193,7 +199,7 @@ def map_to_id(x):
         return to_concept_id(x)
 
 
-# In[43]:
+# In[7]:
 
 def generate_code_dict(df):
     
@@ -203,12 +209,13 @@ def generate_code_dict(df):
     code_to_id = code_to_id.set_index("code")
     code_to_id = code_to_id.to_dict()["basomrade"]
     
+    #print(code_to_id)
     return code_to_id
 
 
 # ## Process data
 
-# In[44]:
+# In[8]:
 
 def process_data(data, b_names, column_names, no_headers, sheetname):
 
@@ -251,7 +258,7 @@ def process_data(data, b_names, column_names, no_headers, sheetname):
 
 # ## Entities
 
-# In[45]:
+# In[9]:
 
 def extract_entities_basomraden(data, names):
 
@@ -272,13 +279,15 @@ def extract_entities_basomraden(data, names):
     basomraden["name"] = basomraden["name"].apply(lambda x: "" if pd.isnull(x) else x)
     basomraden["basomrade"] = basomraden["basomrade"].map(str) + " " + basomraden["name"]
     basomraden["name"] = basomraden[["basomrade", "name"]].apply(lambda x: str(x[0]) if x[1] == "" else x[1], axis=1)
+    
+    
     basomraden["basomrade"] = basomraden["basomrade"].map(to_concept_id)
     basomraden["is--basomrade"] = "TRUE"
     
     return basomraden[["basomrade", "name", "municipality", "is--basomrade"]]
 
 
-# In[46]:
+# In[10]:
 
 def extract_entities_municipalities(data):
 
@@ -294,7 +303,7 @@ def extract_entities_municipalities(data):
     return muni
 
 
-# In[47]:
+# In[11]:
 
 def extract_entities_counties(data):
     
@@ -309,7 +318,7 @@ def extract_entities_counties(data):
     return counties
 
 
-# In[48]:
+# In[12]:
 
 def extract_entities_county_region():
     
@@ -318,7 +327,7 @@ def extract_entities_county_region():
     return county_regions
 
 
-# In[49]:
+# In[13]:
 
 def extract_entities_countries():
     
@@ -330,7 +339,7 @@ def extract_entities_countries():
 
 # ## Datapoints
 
-# In[50]:
+# In[14]:
 
 def extract_datapoints(data, basomraden, municipalities, counties, county_regions, countries):
     
@@ -345,9 +354,10 @@ def extract_datapoints(data, basomraden, municipalities, counties, county_region
 
     return dps_basomraden[[col for col in dps_basomraden.columns if col not in ["geo"]]],     dps_municipalities[[col for col in dps_municipalities.columns if col not in ["geo", "basomrade"]]],    dps_counties[[col for col in dps_counties.columns if col not in ["geo", "basomrade"]]],    dps_county_regions[[col for col in dps_county_regions.columns if col not in ["geo", "basomrade"]]],    dps_countries[[col for col in dps_countries.columns if col not in ["geo", "basomrade"]]]
 
+
 # ## Concepts
 
-# In[51]:
+# In[15]:
 
 def extract_concepts(measures, column_names):
     
@@ -375,11 +385,14 @@ def extract_concepts(measures, column_names):
 
 # ## Main
 
-# In[52]:
+# In[17]:
 
 if __name__ == "__main__":
     
     first_run = True
+    
+    #creatinng global param since some sheets have different vals
+    df_basomraden_all = pd.DataFrame(index=["basomrade"], columns=["basomrade", "name", "municipality", "is--basomrade"])
     
     for config in sheet_config:
         
@@ -389,15 +402,17 @@ if __name__ == "__main__":
         if (not first_run): 
             del data
         data = pd.read_excel(datapoints_file, sheetname=config["sheetname"],                              skiprows=config["skiprows"], parse_cols=config["parse_cols"])
+        
         # PROCESS DATA
         data = process_data(data, b_names, column_names, config["no_headers"], config["sheetname"])
-
+        
         # ENTITIES
         if (first_run):
             print (" ------ Entities ------ ")
             e_data = pd.read_excel(entities_file_2, skiprows=[0,1,2,3,4], converters={'Code': lambda x: str(x)})
 
             df_basomraden = extract_entities_basomraden(data, b_names)
+            #df_basomraden_all = df_basomraden
             df_municipalities = extract_entities_municipalities(e_data)
             df_counties = extract_entities_counties(e_data)
             df_county_regions = extract_entities_county_region()
@@ -405,15 +420,25 @@ if __name__ == "__main__":
 
             entities = [df_basomraden, df_municipalities, df_counties, df_county_regions, df_countries]
             entity_name = ["basomrade", "municipality", "county", "county_region", "country"]
-
+            
             for i, entity in enumerate(entities):
-                path = os.path.join(out_dir, "ddf--entities--{}.csv".format(entity_name[i]))
-                print ("Printing " + path)
-                entity.to_csv(path, index=False, encoding="utf-8")
-                
+                #not generating basomrade file here. will do in the end.
+                if( i > 0):
+                    path = os.path.join(out_dir, "ddf--entities--{}.csv".format(entity_name[i]))
+                    print ("Printing " + path)
+                    entity.to_csv(path, index=False, encoding="utf-8")
+        
         # Convert basomrade codes to IDs
-        if (first_run):
-            code_to_id = generate_code_dict(df_basomraden)
+#         if (first_run):
+#             code_to_id = generate_code_dict(df_basomraden)
+        df_basomraden = extract_entities_basomraden(data, b_names)
+    
+        df_basomraden_all = df_basomraden_all.append(df_basomraden)
+        df_basomraden_all = df_basomraden_all.drop_duplicates().reset_index(drop=True)
+        
+
+        code_to_id = generate_code_dict(df_basomraden)
+        
         data["basomrade"] = data["basomrade"].apply(lambda x: code_to_id[str(x)] if x != "" else "")
         
         print (" ------ Datapoints from sheet " + config["name"] + " ------ ")
@@ -451,9 +476,26 @@ if __name__ == "__main__":
         path = os.path.join(out_dir, "ddf--concepts.csv")
         print ("Printing " + path)
         df_concepts.to_csv(path, index=False, encoding="utf-8")
-        
         first_run = False
     
+    # out put basomrade file now in the end instead in first step.
+    entities = [df_basomraden_all]
+    entity_name = ["basomrade"]
+    
+    for i, entity in enumerate(entities):
+        path = os.path.join(out_dir, "ddf--entities--{}.csv".format(entity_name[i]))
+        print ("Printing " + path)
+        entity.to_csv(path, index=False, encoding="utf-8")
     # CLEANUP
     del data, df_basomraden, df_municipalities, df_counties, df_county_regions, df_countries, df_concepts,        df_dps_bas, df_dps_muni, df_dps_county, df_dps_county_r, df_dps_country, e_data, df_datapoints, b_names
+
+
+# In[ ]:
+
+
+
+
+# In[ ]:
+
+
 
