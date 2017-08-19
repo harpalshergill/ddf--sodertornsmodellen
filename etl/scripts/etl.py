@@ -31,7 +31,7 @@ df_basmoraden_universal = []
 
 # ## Translation dict for column names
 
-# In[4]:
+# In[18]:
 
 column_names = {    
     "År": "year",
@@ -60,26 +60,26 @@ column_names = {
     "Totalt antal personer 20-64 år, Kvinnor": "population_aged_20_64_female",
     "Totalt antal personer 20-64 år, Totalt": "population_aged_20_64",
     # Income sheet
-    "Låg inkomst, Män": "low_income_aged_lt_20_male",
-    "Låg inkomst, Kvinnor": "low_income_aged_lt_20_female",
-    "Medellåg inkomst, Män": "lower_middle_income_aged_lt_20_male",
-    "Medellåg inkomst, Kvinnor": "lower_middle_income_aged_lt_20_female",
-    "Medelhög inkomst, Män": "upper_middle_income_aged_lt_20_male",
-    "Medelhög inkomst, Kvinnor": "upper_middle_income_aged_lt_20_female",
-    "Hög inkomst, Män": "high_income_aged_lt_20_male",
-    "Hög inkomst, Kvinnor": "high_income_aged_lt_20_female",
-    "Totalt antal personer 20+ år, Män": "population_aged_lt_20_male",
-    "Totalt antal personer 20+ år, Kvinnor": "population_aged_lt_20_female",
-    "Totalt antal personer 20+ år, Totalt": "population_aged_lt_20",
-    "Medianinkomst, Män": "median_income_aged_lt_20_male",
-    "Medianinkomst, Kvinnor": "median_income_aged_lt_20_female",
-    "Medianinkomst, Totalt": "median_income_aged_lt_20",
-    "Medelinkomst, Män": "mean_income_aged_lt_20_male",
-    "Medelinkomst, Kvinnor": "mean_income_aged_lt_20_female",
-    "Medelinkomst, Totalt": "mean_income_aged_lt_20",
-    "Summa inkomst, Män": "sum_income_aged_lt_20_male",
-    "Summa inkomst, Kvinnor": "sum_income_aged_lt_20_female",
-    "Summa inkomst, Totalt": "sum_income_aged_lt_20",
+    "Låg inkomst, Män": "low_income_aged_gt_20_male",
+    "Låg inkomst, Kvinnor": "low_income_aged_gt_20_female",
+    "Medellåg inkomst, Män": "lower_middle_income_aged_gt_20_male",
+    "Medellåg inkomst, Kvinnor": "lower_middle_income_aged_gt_20_female",
+    "Medelhög inkomst, Män": "upper_middle_income_aged_gt_20_male",
+    "Medelhög inkomst, Kvinnor": "upper_middle_income_aged_gt_20_female",
+    "Hög inkomst, Män": "high_income_aged_gt_20_male",
+    "Hög inkomst, Kvinnor": "high_income_aged_gt_20_female",
+    "Totalt antal personer 20+ år, Män": "population_aged_gt_20_male",
+    "Totalt antal personer 20+ år, Kvinnor": "population_aged_gt_20_female",
+    "Totalt antal personer 20+ år, Totalt": "population_aged_gt_20",
+    "Medianinkomst, Män": "median_income_aged_gt_20_male",
+    "Medianinkomst, Kvinnor": "median_income_aged_gt_20_female",
+    "Medianinkomst, Totalt": "median_income_aged_gt_20",
+    "Medelinkomst, Män": "mean_income_aged_gt_20_male",
+    "Medelinkomst, Kvinnor": "mean_income_aged_gt_20_female",
+    "Medelinkomst, Totalt": "mean_income_aged_gt_20",
+    "Summa inkomst, Män": "sum_income_aged_gt_20_male",
+    "Summa inkomst, Kvinnor": "sum_income_aged_gt_20_female",
+    "Summa inkomst, Totalt": "sum_income_aged_gt_20",
     # Work sheets
     # 1
     "Antal, Inflyttade, Män": "immigration_male",
@@ -138,7 +138,7 @@ column_names = {
 
 # ## Excel sheets' config
 
-# In[5]:
+# In[19]:
 
 sheet_config = [
     {
@@ -188,7 +188,7 @@ sheet_config = [
 
 # ## Helpers
 
-# In[6]:
+# In[20]:
 
 def map_to_id(x):
     if x == str("Stockholms län"):
@@ -199,7 +199,7 @@ def map_to_id(x):
         return to_concept_id(x)
 
 
-# In[7]:
+# In[21]:
 
 def generate_code_dict(df):
     
@@ -215,7 +215,7 @@ def generate_code_dict(df):
 
 # ## Process data
 
-# In[8]:
+# In[22]:
 
 def process_data(data, b_names, column_names, no_headers, sheetname):
 
@@ -258,7 +258,7 @@ def process_data(data, b_names, column_names, no_headers, sheetname):
 
 # ## Entities
 
-# In[9]:
+# In[23]:
 
 def extract_entities_basomraden(data, names):
 
@@ -287,7 +287,7 @@ def extract_entities_basomraden(data, names):
     return basomraden[["basomrade", "name", "municipality", "is--basomrade"]]
 
 
-# In[10]:
+# In[24]:
 
 def extract_entities_municipalities(data):
 
@@ -303,7 +303,7 @@ def extract_entities_municipalities(data):
     return muni
 
 
-# In[11]:
+# In[25]:
 
 def extract_entities_counties(data):
     
@@ -318,7 +318,7 @@ def extract_entities_counties(data):
     return counties
 
 
-# In[12]:
+# In[26]:
 
 def extract_entities_county_region():
     
@@ -327,7 +327,7 @@ def extract_entities_county_region():
     return county_regions
 
 
-# In[13]:
+# In[27]:
 
 def extract_entities_countries():
     
@@ -339,7 +339,7 @@ def extract_entities_countries():
 
 # ## Datapoints
 
-# In[14]:
+# In[28]:
 
 def extract_datapoints(data, basomraden, municipalities, counties, county_regions, countries):
     
@@ -357,7 +357,7 @@ def extract_datapoints(data, basomraden, municipalities, counties, county_region
 
 # ## Concepts
 
-# In[15]:
+# In[29]:
 
 def extract_concepts(measures, column_names):
     
@@ -385,7 +385,7 @@ def extract_concepts(measures, column_names):
 
 # ## Main
 
-# In[17]:
+# In[30]:
 
 if __name__ == "__main__":
     
